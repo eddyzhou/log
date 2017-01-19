@@ -228,6 +228,14 @@ func Errorf(format string, v ...interface{}) {
 	Std.Errorf(format, v...)
 }
 
+func Panic(v ...interface{}) {
+	Std.Panic(v...)
+}
+
+func Panicf(format string, v ...interface{}) {
+	Std.Panicf(format, v...)
+}
+
 func Fatal(v ...interface{}) {
 	Std.Fatal(v...)
 }
