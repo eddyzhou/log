@@ -9,29 +9,13 @@ import (
 	"time"
 )
 
-type Level uint8
-
-func (level Level) String() string {
-	switch level {
-	case Ldebug:
-		return "DEBUG"
-	case Linfo:
-		return "INFO"
-	case Lwarn:
-		return "WARNING"
-	case Lerror:
-		return "ERROR"
-	case Lfatal:
-		return "FATAL"
-	case Lpanic:
-		return "PANIC"
-	}
-
-	return "UNKNOWN"
-}
+const (
+	Ldefault   = log.Lshortfile | log.LstdFlags
+	TimeLayout = "20060102"
+)
 
 const (
-	Ldebug Level = iota
+	Ldebug = iota
 	Linfo
 	Lwarn
 	Lerror
@@ -39,29 +23,33 @@ const (
 	Lfatal
 )
 
-const (
-	Ldefault   = log.Lshortfile | log.LstdFlags
-	TimeLayout = "20060102"
-)
+var levels = []string{
+	"DEBUG",
+	"INFO",
+	"WARN",
+	"ERROR",
+	"PANIC",
+	"FATAL",
+}
 
 type Logger struct {
 	mu           sync.Mutex
 	logger       *log.Logger
-	level        Level
+	level        int
 	shouldRotate bool
 	timeSuffix   string
 	fileName     string
 	fd           *os.File
 }
 
-func New(w io.Writer, prefix string, flag int, level Level) *Logger {
+func New(w io.Writer, prefix string, flag int, level int) *Logger {
 	return &Logger{
 		logger: log.New(w, prefix, flag),
 		level:  level,
 	}
 }
 
-func NewRotate(fileName string, prefix string, flag int, level Level) *Logger {
+func NewRotate(fileName string, prefix string, flag int, level int) *Logger {
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -123,7 +111,7 @@ func (l *Logger) doRotate() error {
 
 // When file is opened with appending mode, it's safe to
 // write concurrently to a file (within 4k message on Linux).
-func (l *Logger) log(lvl Level, v ...interface{}) {
+func (l *Logger) log(lvl int, v ...interface{}) {
 	if lvl < l.level {
 		return
 	}
@@ -135,13 +123,13 @@ func (l *Logger) log(lvl Level, v ...interface{}) {
 	}
 
 	v1 := make([]interface{}, len(v)+1)
-	v1[0] = lvl.String()
+	v1[0] = levels[lvl]
 	copy(v1[1:], v)
 
 	l.logger.Output(2, fmt.Sprint(v1...))
 }
 
-func (l *Logger) logf(lvl Level, format string, v ...interface{}) {
+func (l *Logger) logf(lvl int, format string, v ...interface{}) {
 	if lvl < l.level {
 		return
 	}
@@ -152,7 +140,7 @@ func (l *Logger) logf(lvl Level, format string, v ...interface{}) {
 		}
 	}
 
-	s := lvl.String() + " " + fmt.Sprintf(format, v...)
+	s := levels[lvl] + " " + fmt.Sprintf(format, v...)
 	l.logger.Output(2, s)
 }
 
@@ -164,6 +152,16 @@ func (l *Logger) Fatal(v ...interface{}) {
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.logf(Lfatal, format, v...)
 	os.Exit(-1)
+}
+
+func (l *Logger) Panic(v ...interface{}) {
+	l.log(Lpanic, v...)
+	panic(fmt.Sprint(v...))
+}
+
+func (l *Logger) Panicf(format string, v ...interface{}) {
+	l.logf(Lpanic, format, v...)
+	panic(fmt.Sprintf(format, v...))
 }
 
 func (l *Logger) Error(v ...interface{}) {
