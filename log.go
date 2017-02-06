@@ -129,6 +129,24 @@ func (l *Logger) log(lvl int, v ...interface{}) {
 	l.logger.Output(2, fmt.Sprint(v1...))
 }
 
+func (l *Logger) logln(lvl int, v ...interface{}) {
+	if lvl < l.level {
+		return
+	}
+
+	if l.shouldRotate {
+		if err := l.rotate(); err != nil {
+			log.Fatal("log rotate failed.", err)
+		}
+	}
+
+	v1 := make([]interface{}, len(v)+1)
+	v1[0] = levels[lvl]
+	copy(v1[1:], v)
+
+	l.logger.Output(2, fmt.Sprintln(v1...))
+}
+
 func (l *Logger) logf(lvl int, format string, v ...interface{}) {
 	if lvl < l.level {
 		return
@@ -196,6 +214,18 @@ func (l *Logger) Infof(format string, v ...interface{}) {
 	l.logf(Linfo, format, v...)
 }
 
+func (l *Logger) Print(v ...interface{}) {
+	l.log(Linfo, v...)
+}
+
+func (l *Logger) Printf(format string, v ...interface{}) {
+	l.logf(Linfo, format, v...)
+}
+
+func (l *Logger) Println(v ...interface{}) {
+	l.logln(Linfo, v...)
+}
+
 func Info(v ...interface{}) {
 	Std.Info(v...)
 }
@@ -242,4 +272,16 @@ func Fatal(v ...interface{}) {
 
 func Fatalf(format string, v ...interface{}) {
 	Std.Fatalf(format, v...)
+}
+
+func Print(v ...interface{}) {
+	Std.Print(v...)
+}
+
+func Printf(format string, v ...interface{}) {
+	Std.Printf(format, v...)
+}
+
+func Println(v ...interface{}) {
+	Std.Println(v...)
 }
