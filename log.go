@@ -172,6 +172,11 @@ func (l *Logger) Fatalf(format string, v ...interface{}) {
 	os.Exit(-1)
 }
 
+func (l *Logger) Fatalln(v ...interface{}) {
+	l.logln(Lfatal, v...)
+	os.Exit(-1)
+}
+
 func (l *Logger) Panic(v ...interface{}) {
 	l.log(Lpanic, v...)
 	panic(fmt.Sprint(v...))
@@ -272,6 +277,10 @@ func Fatal(v ...interface{}) {
 
 func Fatalf(format string, v ...interface{}) {
 	Std.Fatalf(format, v...)
+}
+
+func Fatalln(v ...interface{}) {
+	Std.Fatalln(v...)
 }
 
 func Print(v ...interface{}) {
