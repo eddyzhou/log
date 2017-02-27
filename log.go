@@ -149,7 +149,7 @@ func (l *Logger) log(lvl Level, v ...interface{}) {
 	v1[0] = levels[lvl] + " "
 	copy(v1[1:], v)
 
-	l.logger.Output(2, fmt.Sprint(v1...))
+	l.logger.Output(4, fmt.Sprint(v1...))
 }
 
 func (l *Logger) logln(lvl Level, v ...interface{}) {
@@ -167,7 +167,7 @@ func (l *Logger) logln(lvl Level, v ...interface{}) {
 	v1[0] = levels[lvl] + " "
 	copy(v1[1:], v)
 
-	l.logger.Output(2, fmt.Sprintln(v1...))
+	l.logger.Output(4, fmt.Sprintln(v1...))
 }
 
 func (l *Logger) logf(lvl Level, format string, v ...interface{}) {
@@ -182,7 +182,7 @@ func (l *Logger) logf(lvl Level, format string, v ...interface{}) {
 	}
 
 	s := levels[lvl] + " " + fmt.Sprintf(format, v...)
-	l.logger.Output(2, s)
+	l.logger.Output(4, s)
 }
 
 func (l *Logger) Fatal(v ...interface{}) {
