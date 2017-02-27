@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,8 +15,10 @@ const (
 	TimeLayout = "20060102"
 )
 
+type Level uint8
+
 const (
-	Ldebug = iota
+	Ldebug Level = iota
 	Linfo
 	Lwarn
 	Lerror
@@ -32,24 +35,44 @@ var levels = []string{
 	"FATAL",
 }
 
+func ParseLevel(lvl string) (Level, error) {
+	switch strings.ToLower(lvl) {
+	case "panic":
+		return Lpanic, nil
+	case "fatal":
+		return Lfatal, nil
+	case "error":
+		return Lerror, nil
+	case "warn":
+		return Lwarn, nil
+	case "info":
+		return Linfo, nil
+	case "debug":
+		return Ldebug, nil
+	}
+
+	var l Level
+	return l, fmt.Errorf("invalid log Level: %q", lvl)
+}
+
 type Logger struct {
 	mu           sync.Mutex
 	logger       *log.Logger
-	level        int
+	level        Level
 	shouldRotate bool
 	timeSuffix   string
 	fileName     string
 	fd           *os.File
 }
 
-func New(w io.Writer, prefix string, flag int, level int) *Logger {
+func New(w io.Writer, prefix string, flag int, level Level) *Logger {
 	return &Logger{
 		logger: log.New(w, prefix, flag),
 		level:  level,
 	}
 }
 
-func NewRotate(fileName string, prefix string, flag int, level int) *Logger {
+func NewRotate(fileName string, prefix string, flag int, level Level) *Logger {
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -111,7 +134,7 @@ func (l *Logger) doRotate() error {
 
 // When file is opened with appending mode, it's safe to
 // write concurrently to a file (within 4k message on Linux).
-func (l *Logger) log(lvl int, v ...interface{}) {
+func (l *Logger) log(lvl Level, v ...interface{}) {
 	if lvl < l.level {
 		return
 	}
@@ -123,13 +146,13 @@ func (l *Logger) log(lvl int, v ...interface{}) {
 	}
 
 	v1 := make([]interface{}, len(v)+1)
-	v1[0] = levels[lvl]
+	v1[0] = levels[lvl] + " "
 	copy(v1[1:], v)
 
 	l.logger.Output(2, fmt.Sprint(v1...))
 }
 
-func (l *Logger) logln(lvl int, v ...interface{}) {
+func (l *Logger) logln(lvl Level, v ...interface{}) {
 	if lvl < l.level {
 		return
 	}
@@ -141,13 +164,13 @@ func (l *Logger) logln(lvl int, v ...interface{}) {
 	}
 
 	v1 := make([]interface{}, len(v)+1)
-	v1[0] = levels[lvl]
+	v1[0] = levels[lvl] + " "
 	copy(v1[1:], v)
 
 	l.logger.Output(2, fmt.Sprintln(v1...))
 }
 
-func (l *Logger) logf(lvl int, format string, v ...interface{}) {
+func (l *Logger) logf(lvl Level, format string, v ...interface{}) {
 	if lvl < l.level {
 		return
 	}
